@@ -43,7 +43,7 @@
 
         <div class="grid grid-cols-2 gap-3 mb-6 text-left">
             <div>
-                <label class="text-slate-600 font-bold text-xs block mb-1.5 pl-1">수강 개월 (Month)</label>
+                <label class="text-slate-600 font-bold text-xs block mb-1.5 pl-1">연습할 교재 (Month)</label>
                 <select id="select-month" class="w-full px-4 py-3 rounded-xl border-2 border-slate-100 focus:border-blue-600 focus:outline-none font-bold text-slate-700 bg-white">
                     <option value="Month1">Month 1</option>
                     <option value="Month2">Month 2</option>
@@ -417,8 +417,6 @@
             let speechResult = speechText.toLowerCase().trim();
             let targetResult = scriptData[currentIdx].en.toLowerCase().trim();
 
-            // ⏰ [업그레이드] 시간 기호(:) 예외 처리 로직 가동
-            // 대본에 '3:30' 형태로 기록되어 있을 때 공백을 주어 분리 처리 (3:30 -> 3 30)
             targetResult = targetResult.replace(/:/g, ' ');
             speechResult = speechResult.replace(/:/g, ' ');
 
@@ -435,7 +433,6 @@
                 speechResult = speechResult.replace(regex, numMap[num]);
             }
 
-            // 문장 부호 기호 완벽 제거
             speechResult = speechResult.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?'"]/g,"").replace(/\s+/g, " ").trim();
             targetResult = targetResult.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?'"]/g,"").replace(/\s+/g, " ").trim();
 
