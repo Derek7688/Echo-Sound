@@ -18,7 +18,6 @@
 </head>
 <body class="bg-slate-50 min-h-screen flex flex-col items-center justify-start p-4">
 
-    <!-- 📢 로테이션 홍보 배너 템플릿 -->
     <template id="banner-template">
         <div class="promo-banner bg-white border border-blue-50 p-3 sm:p-4 rounded-2xl mb-6 cursor-pointer shadow-lg transition-all active:scale-95 w-full max-w-sm mx-auto" 
              onclick="window.open('https://www.pse-learning.co.kr/course/course_list.jsp?cid=120849', '_blank')">
@@ -32,14 +31,12 @@
         </div>
     </template>
 
-    <!-- ================= [1] 회차 선택 및 즉시 입장 화면 ================= -->
     <div id="auth-screen" class="bg-white p-8 rounded-[2.5rem] shadow-2xl max-w-sm w-full border border-slate-100 my-auto text-center">
         <span class="bg-blue-100 text-blue-600 px-4 py-1 rounded-full text-sm font-black mb-3 inline-block uppercase tracking-widest">Echo Pop!</span>
         <h1 class="text-3xl font-black text-slate-800 mb-6 tracking-tight">Drilling System</h1>
         
         <div id="login-banner-area"></div>
 
-        <!-- 코스 선택 (Month & Episode) -->
         <div class="grid grid-cols-2 gap-3 mb-6 text-left">
             <div>
                 <label class="text-slate-600 font-bold text-xs block mb-1.5 pl-1">수강 개월 (Month)</label>
@@ -70,7 +67,6 @@
         <button id="login-btn" onclick="startDrilling()" class="w-full bg-slate-900 text-white py-5 rounded-2xl font-bold text-lg shadow-xl active:scale-95 transition-all">훈련 시작하기</button>
     </div>
 
-    <!-- ================= [2] 실시간 STT 에코 학습 화면 ================= -->
     <div id="study-screen" class="hidden w-full max-w-lg text-slate-900 mx-auto mt-4">
         <div class="flex justify-between items-center mb-4 px-2">
             <div id="target-session-display" class="text-slate-400 font-black text-xs tracking-widest uppercase">Month1 / Ep01</div>
@@ -78,7 +74,6 @@
         </div>
 
         <div class="bg-white p-10 rounded-[3rem] shadow-2xl card-container text-center mb-6 border border-slate-50 relative overflow-hidden">
-            <!-- 상단 제어 바 -->
             <div class="absolute top-6 left-8 right-8 flex justify-between items-center">
                 <span id="sentence-number" class="bg-blue-50 text-blue-600 px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-tighter">Loading...</span>
                 <button id="mute-toggle-btn" onclick="toggleMuteMode()" class="px-3 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-[10px] rounded-full transition-all flex items-center gap-1">
@@ -89,7 +84,6 @@
             <div id="kr-box" class="text-2xl font-black text-slate-800 leading-relaxed mb-4 break-keep font-black mt-4">데이터 로딩 중...</div>
             <div id="en-target-box" class="text-lg font-bold text-slate-400 mb-6 tracking-tight"></div>
             
-            <!-- 🎵 오디오 제어 버튼 컨트롤러 -->
             <div id="audio-control-panel" class="flex items-center justify-center gap-4 mb-6">
                 <button onclick="userTriggerAudio(1.0)" class="px-4 py-2 bg-blue-50 hover:bg-blue-100 border border-blue-100 text-blue-600 font-black text-xs rounded-full shadow-sm transition-all flex items-center gap-1">
                     💬 1배속 재생
@@ -120,17 +114,14 @@
         <p id="progress-text" class="text-center text-slate-400 text-[10px] font-bold tracking-widest uppercase">Loading...</p>
     </div>
 
-    <!-- ================= [3] 🎉 미션 클리어 성공 전체 화면 ================= -->
     <div id="finish-screen" class="hidden w-full max-w-md bg-white p-8 sm:p-10 rounded-[2.5rem] shadow-2xl text-center my-auto border border-slate-100 flex flex-col items-center justify-start">
         <p class="text-4xl mb-2 animate-bounce">🏆</p>
         <h2 class="text-2xl font-black text-blue-600 mb-1 tracking-tight">DRILLING COMPLETE!</h2>
         <p id="finish-session-display" class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Month1 / Ep01 완료</p>
         
-        <!-- 📊 패스/실패 채점 리포트 박스 -->
         <div id="report-box" class="w-full text-left bg-slate-50 border border-slate-100 rounded-2xl p-4 mb-4 max-h-[240px] overflow-y-auto report-scroll flex flex-col gap-2.5">
         </div>
 
-        <!-- 📅 캘린더 복습 스케줄러 영역 -->
         <div class="w-full mb-4">
             <button id="toggle-calendar-btn" onclick="toggleCalendarSection()" class="w-full bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-600 py-3 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5">
                 🗓️ 구글 캘린더에 복습 일정 지정하기 ⚡
@@ -140,7 +131,7 @@
                 <label class="block text-slate-700 font-black text-[11px] uppercase mb-1 pl-0.5">📅 복습할 날짜와 시간 설정</label>
                 <div class="flex gap-2">
                     <input type="datetime-local" id="next-practice-date" class="flex-1 px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:border-blue-600 text-xs font-bold text-slate-800 bg-white">
-                    <button id="calendar-btn" onclick="syncToMyCalendar()" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-xl text-xs font-black shadow transition-all active:scale-95 flex-shrink-0">
+                    <button id="calendar-btn" onclick="syncToMyCalendarDirect()" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-xl text-xs font-black shadow transition-all active:scale-95 flex-shrink-0">
                         일정 등록
                     </button>
                 </div>
@@ -155,6 +146,7 @@
     </div>
 
     <script>
+        // 대본 데이터 전송용 웹앱 URL 고유 형식 유지
         const GAS_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxVe_gqEABNFzQOGOakm5UA41_Y3PWtWCH2GxNx9oztA7KHGslm4GFkCDnBQitaPBqx/exec";
 
         let scriptData = [];
@@ -343,35 +335,33 @@
             }
         }
 
-        async function syncToMyCalendar() {
-            const calBtn = document.getElementById('calendar-btn');
-            const nextDateVal = document.getElementById('next-practice-date').value;
+        // 📅 [혁신 코드 주입] 사다리 툴의 환경 독립형 다이렉트 캘린더 생성 엔진
+        function syncToMyCalendarDirect() {
+            const dateInput = document.getElementById('next-practice-date').value;
             
-            if(!nextDateVal) {
-                alert("복습할 날짜와 시간을 입력해 주세요.");
+            if(!dateInput) {
+                alert("복습할 날짜와 시간을 선택해 주세요.");
                 return;
             }
 
-            calBtn.innerText = "등록 중...";
-            calBtn.disabled = true;
-
-            try {
-                await fetch(GAS_WEBAPP_URL, {
-                    method: "POST",
-                    mode: "no-cors",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        episode: selectedTargetEpisode, 
-                        nextDate: nextDateVal
-                    })
-                });
-                alert("🗓️ 구글 캘린더에 복습 리마인더 예약이 완벽하게 등록되었습니다!");
-                calBtn.innerText = "✅ 완료됨";
-            } catch(e) {
-                alert("캘린더 등록에 실패했습니다. 네트워크 상태를 확인하세요.");
-                calBtn.innerText = "일정 등록";
-                calBtn.disabled = false;
-            }
+            // 1. 학생들이 선택한 datetime-local 값을 구글 표준 시간대 포맷(YYYYMMDDTHHMMSS)으로 가공
+            const selectedDate = new Date(dateInput);
+            const startStr = selectedDate.toISOString().replace(/-|:|\.\d+/g, '').slice(0, 15) + "Z";
+            
+            // 2. 복습 종료 시간은 시작 시간에서 45분 뒤로 계산하여 연동
+            const endDate = new Date(selectedDate.getTime() + 45 * 60 * 1000);
+            const endStr = endDate.toISOString().replace(/-|:|\.\d+/g, '').slice(0, 15) + "Z";
+            
+            // 3. 인코딩 규칙을 적용하여 제목 및 주소 링크 데이터 바인딩
+            const parsedSessionName = selectedTargetEpisode.replace('_', ' / ');
+            const title = encodeURIComponent(`🎧 [Echo Pop!] ${parsedSessionName} 섀도잉 복습 드릴링`);
+            const details = encodeURIComponent(`원어민의 호흡 그대로 소리쳐 뱉는 Echo Pop! 복습 세션입니다. 🔥\n\n🔗 섀도잉 훈련소 링크 즉시 진입:\n${window.location.href}`);
+            
+            // 4. 구글 캘린더 렌더 플로우 전격 가동 (브라우저 차단 우회 및 다이렉트 연동 완성)
+            const googleCalendarUrl = `https://www.google.com/calendar/render?action=TEMPLATE&text=${title}&details=${details}&dates=${startStr}/${endStr}`;
+            
+            // 화면 팝업 없이 즉시 안전 이동
+            window.open(googleCalendarUrl, '_blank');
         }
 
         function showFinishUI() {
@@ -426,17 +416,13 @@
             };
         }
 
-        // 💡 [로직 수정 구역] 이제 통과(PASS)하더라도 다음 문장 함수(nextSentence)를 타이머로 호출하지 않습니다!
         function processEvaluation(speechText) {
             const speechResult = speechText.toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?'"]/g,"").replace(/\s+/g, " ").trim();
             const targetResult = scriptData[currentIdx].en.toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?'"]/g,"").replace(/\s+/g, " ").trim();
 
             if(speechResult === targetResult || targetResult.includes(speechResult)) {
                 document.getElementById('stt-output').className = "text-xl match-success text-center";
-                scriptData[currentIdx].isPassed = true; // 현재 문제의 데이터 성공 기록 확보
-                
-                // 💡 기존의 setTimeout 기반 자동 다음 페이지 이동(nextSentence) 구역 전면 격하 및 제거!
-                // 현재 화면에 안착하여 성공 문장을 음미하거나, 원한다면 mic 버튼으로 무한 재도전 가능.
+                scriptData[currentIdx].isPassed = true; 
             } else {
                 document.getElementById('stt-output').className = "text-xl text-red-500 font-bold text-center";
             }
