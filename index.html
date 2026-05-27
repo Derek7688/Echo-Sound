@@ -33,7 +33,11 @@
 
     <div id="auth-screen" class="bg-white p-8 rounded-[2.5rem] shadow-2xl max-w-sm w-full border border-slate-100 my-auto text-center">
         <span class="bg-blue-100 text-blue-600 px-4 py-1 rounded-full text-sm font-black mb-3 inline-block uppercase tracking-widest">Echo Pop!</span>
-        <h1 class="text-3xl font-black text-slate-800 mb-6 tracking-tight">Drilling System</h1>
+        <h1 class="text-3xl font-black text-slate-800 mb-2 tracking-tight">Drilling System</h1>
+        
+        <p class="text-[11px] font-bold text-slate-400 mb-6 flex items-center justify-center gap-1 bg-slate-50 py-1.5 px-3 rounded-full w-fit mx-auto border border-slate-100 select-none">
+            🌐 본 시스템은 <span class="text-slate-600 font-extrabold">Google Chrome</span> 브라우저에 최적화되어 있습니다.
+        </p>
         
         <div id="login-banner-area"></div>
 
@@ -146,7 +150,6 @@
     </div>
 
     <script>
-        // 대본 데이터 전송용 웹앱 URL 고유 형식 유지
         const GAS_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxVe_gqEABNFzQOGOakm5UA41_Y3PWtWCH2GxNx9oztA7KHGslm4GFkCDnBQitaPBqx/exec";
 
         let scriptData = [];
@@ -335,7 +338,6 @@
             }
         }
 
-        // 📅 [혁신 코드 주입] 사다리 툴의 환경 독립형 다이렉트 캘린더 생성 엔진
         function syncToMyCalendarDirect() {
             const dateInput = document.getElementById('next-practice-date').value;
             
@@ -344,23 +346,18 @@
                 return;
             }
 
-            // 1. 학생들이 선택한 datetime-local 값을 구글 표준 시간대 포맷(YYYYMMDDTHHMMSS)으로 가공
             const selectedDate = new Date(dateInput);
             const startStr = selectedDate.toISOString().replace(/-|:|\.\d+/g, '').slice(0, 15) + "Z";
             
-            // 2. 복습 종료 시간은 시작 시간에서 45분 뒤로 계산하여 연동
             const endDate = new Date(selectedDate.getTime() + 45 * 60 * 1000);
             const endStr = endDate.toISOString().replace(/-|:|\.\d+/g, '').slice(0, 15) + "Z";
             
-            // 3. 인코딩 규칙을 적용하여 제목 및 주소 링크 데이터 바인딩
             const parsedSessionName = selectedTargetEpisode.replace('_', ' / ');
             const title = encodeURIComponent(`🎧 [Echo Pop!] ${parsedSessionName} 섀도잉 복습 드릴링`);
             const details = encodeURIComponent(`원어민의 호흡 그대로 소리쳐 뱉는 Echo Pop! 복습 세션입니다. 🔥\n\n🔗 섀도잉 훈련소 링크 즉시 진입:\n${window.location.href}`);
             
-            // 4. 구글 캘린더 렌더 플로우 전격 가동 (브라우저 차단 우회 및 다이렉트 연동 완성)
             const googleCalendarUrl = `https://www.google.com/calendar/render?action=TEMPLATE&text=${title}&details=${details}&dates=${startStr}/${endStr}`;
             
-            // 화면 팝업 없이 즉시 안전 이동
             window.open(googleCalendarUrl, '_blank');
         }
 
@@ -417,8 +414,23 @@
         }
 
         function processEvaluation(speechText) {
-            const speechResult = speechText.toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?'"]/g,"").replace(/\s+/g, " ").trim();
-            const targetResult = scriptData[currentIdx].en.toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?'"]/g,"").replace(/\s+/g, " ").trim();
+            let speechResult = speechText.toLowerCase().trim();
+            let targetResult = scriptData[currentIdx].en.toLowerCase().trim();
+
+            const numMap = {
+                "1": "one", "2": "two", "3": "three", "4": "four", "5": "five",
+                "6": "six", "7": "seven", "8": "eight", "9": "nine", "10": "ten",
+                "11": "eleven", "12": "twelve", "20": "twenty", "30": "thirty"
+            };
+
+            for (let num in numMap) {
+                const regex = new RegExp(`\\b${num}\\b`, 'g');
+                targetResult = targetResult.replace(regex, numMap[num]);
+                speechResult = speechResult.replace(regex, numMap[num]);
+            }
+
+            speechResult = speechResult.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?'"]/g,"").replace(/\s+/g, " ").trim();
+            targetResult = targetResult.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?'"]/g,"").replace(/\s+/g, " ").trim();
 
             if(speechResult === targetResult || targetResult.includes(speechResult)) {
                 document.getElementById('stt-output').className = "text-xl match-success text-center";
