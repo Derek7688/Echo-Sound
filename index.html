@@ -164,7 +164,7 @@
         let isMuteMode = false; 
         let recognition;
         let currentAudio = null;
-        let audioCtx = null; // 💡 구글 오디오 전용 컨텍스트 추가 (락 해제용)
+        let audioCtx = null; 
 
         const bannerMsgs = [
             { icon: "🔥", text: "하루 1분 투자! 실전 패턴 Pop!" },
@@ -232,7 +232,6 @@
                 return;
             }
 
-            // 💡 웹앱 진입 시 브라우저 오디오 시스템 최초 활성화 유도
             try {
                 window.AudioContext = window.AudioContext || window.webkitAudioContext;
                 audioCtx = new AudioContext();
@@ -265,7 +264,6 @@
             }
         }
 
-        // 💡 [버그 완전 예방] 마이크 오디오 인터럽트를 강제로 뚫어버리는 통합 재생 함수
         function playAudio(speed, isAutoPlay = false) {
             if (scriptData.length === 0) return;
             if (isAutoPlay && isMuteMode) return;
@@ -273,21 +271,19 @@
             const streamUrl = scriptData[currentIdx].audio;
             if (!streamUrl || streamUrl.trim() === "") return;
             
-            // 💡 핵심: 마이크로 인해 잠긴 브라우저 스피커 라인을 완전히 강제 리셋 후 깨우기
             if (audioCtx && audioCtx.state === 'suspended') {
                 audioCtx.resume();
             }
 
             if (currentAudio) {
                 currentAudio.pause();
-                currentAudio.src = ""; // 기존 오디오 리소스 메모리 해제
+                currentAudio.src = ""; 
             }
             
             try {
                 currentAudio = new Audio(streamUrl.trim());
                 currentAudio.playbackRate = speed;
                 
-                // 모바일 사파리/크롬 대응 강제 하이재킹 설정 추가
                 currentAudio.preload = "auto";
                 currentAudio.setAttribute('playsinline', '');
                 
@@ -302,7 +298,6 @@
             }
         }
 
-        // 💡 사용자가 수동 버튼 터치 시 무조건 오디오 락을 확실히 깨우고 재생시키는 중계 함수
         function userTriggerAudio(speed) {
             if (audioCtx) audioCtx.resume();
             playAudio(speed, false);
@@ -409,25 +404,8 @@
 
             recognition.onresult = (event) => {
                 const speechText = event.results[0][0].transcript;
-                const speechResult = speechText.toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"").trim();
-                const targetResult = scriptData[currentIdx].en.toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"").trim();
-                
                 document.getElementById('stt-output').innerText = `내가 뱉은 소리: "${speechText}"`;
-
-                if(speechResult === targetResult || targetResult.includes(speechResult)) {
-                    document.getElementById('stt-output').className = "text-xl match-success text-center";
-                    scriptData[currentIdx].isPassed = true;
-
-                    setTimeout(() => {
-                        if(currentIdx < scriptData.length - 1) {
-                            nextSentence();
-                        } else {
-                            showFinishUI(); 
-                        }
-                    }, 1200);
-                } else {
-                    document.getElementById('stt-output').className = "text-xl text-red-500 font-bold text-center";
-                }
+                processEvaluation(speechText);
             };
 
             recognition.onerror = (event) => {
@@ -435,31 +413,47 @@
                 document.getElementById('stt-output').innerText = "소리를 제대로 듣지 못했습니다. 다시 시도해 주세요.";
             };
 
-            // 💡 [오디오 버그 킬러] 마이크가 꺼지는 순간 강제로 브라우저 오디오 시스템 전체 락 해제
             recognition.onend = () => {
                 isListening = false;
+                
                 document.getElementById('mic-btn').className = "flex-1 bg-slate-900 text-white py-5 rounded-[1.8rem] font-black text-lg shadow-2xl active:scale-95 transition-all flex items-center justify-center gap-2";
+                document.getElementById('mic-icon').style.display = "inline";
                 document.getElementById('mic-text').innerText = "에코 매칭 도전!";
                 
-                // 마이크 종료 즉시 웹 오디오 세션 리셋 요청 명령
                 if (audioCtx) {
-                    audioCtx.resume().then(() => {
-                        console.log("마이크 종료 후 오디오 파이프라인 완벽 해제 및 동기화 완료");
-                    });
+                    audioCtx.resume();
                 }
             };
         }
 
+        // 💡 [로직 수정 구역] 이제 통과(PASS)하더라도 다음 문장 함수(nextSentence)를 타이머로 호출하지 않습니다!
+        function processEvaluation(speechText) {
+            const speechResult = speechText.toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?'"]/g,"").replace(/\s+/g, " ").trim();
+            const targetResult = scriptData[currentIdx].en.toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?'"]/g,"").replace(/\s+/g, " ").trim();
+
+            if(speechResult === targetResult || targetResult.includes(speechResult)) {
+                document.getElementById('stt-output').className = "text-xl match-success text-center";
+                scriptData[currentIdx].isPassed = true; // 현재 문제의 데이터 성공 기록 확보
+                
+                // 💡 기존의 setTimeout 기반 자동 다음 페이지 이동(nextSentence) 구역 전면 격하 및 제거!
+                // 현재 화면에 안착하여 성공 문장을 음미하거나, 원한다면 mic 버튼으로 무한 재도전 가능.
+            } else {
+                document.getElementById('stt-output').className = "text-xl text-red-500 font-bold text-center";
+            }
+        }
+
         function toggleListening() {
-            if (audioCtx) audioCtx.resume(); // 터치하는 순간 오디오 활성화 상태 기록 보장
+            if (audioCtx) audioCtx.resume(); 
 
             if(isListening) {
                 recognition.stop();
             } else {
                 isListening = true;
                 
-                document.getElementById('mic-btn').className = "flex-1 bg-blue-600 text-white py-5 rounded-[1.8rem] font-black text-lg shadow-2xl active:scale-95 transition-all flex items-center justify-center gap-2 animate-pulse";
-                document.getElementById('mic-text').innerText = "🎙️ 음성 인식 중... (말씀하세요)";
+                document.getElementById('mic-btn').className = "flex-1 bg-blue-600 text-white py-5 rounded-[1.8rem] font-black text-lg shadow-2xl active:scale-95 transition-all flex items-center justify-center animate-pulse";
+                document.getElementById('mic-icon').style.display = "none";
+                document.getElementById('mic-text').innerText = "음성 인식 중";
+                
                 document.getElementById('stt-output').innerText = "원어민의 호흡 그대로 소리 내어 던지세요!";
                 document.getElementById('stt-output').className = "text-xl text-slate-400 italic text-center";
                 
@@ -483,7 +477,6 @@
             document.getElementById('progress-text').innerText = `Sentence ${currentIdx + 1} / ${scriptData.length}`;
             document.getElementById('progress-bar').style.width = `${((currentIdx + 1) / scriptData.length) * 100}%`;
             
-            // 💡 문장 렌더링 시 브라우저 오디오 시스템 한 번 더 정렬 후 플레이
             setTimeout(() => {
                 playAudio(1.0, true);
             }, 300);
