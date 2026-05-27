@@ -91,10 +91,10 @@
             
             <!-- 🎵 오디오 제어 버튼 컨트롤러 -->
             <div id="audio-control-panel" class="flex items-center justify-center gap-4 mb-6">
-                <button onclick="playAudio(1.0)" class="px-4 py-2 bg-blue-50 hover:bg-blue-100 border border-blue-100 text-blue-600 font-black text-xs rounded-full shadow-sm transition-all flex items-center gap-1">
+                <button onclick="userTriggerAudio(1.0)" class="px-4 py-2 bg-blue-50 hover:bg-blue-100 border border-blue-100 text-blue-600 font-black text-xs rounded-full shadow-sm transition-all flex items-center gap-1">
                     💬 1배속 재생
                 </button>
-                <button onclick="playAudio(0.8)" class="px-4 py-2 bg-orange-50 hover:bg-orange-100 border border-orange-100 text-orange-600 font-black text-xs rounded-full shadow-sm transition-all flex items-center gap-1">
+                <button onclick="userTriggerAudio(0.8)" class="px-4 py-2 bg-orange-50 hover:bg-orange-100 border border-orange-100 text-orange-600 font-black text-xs rounded-full shadow-sm transition-all flex items-center gap-1">
                     🐢 0.8배속 재생
                 </button>
             </div>
@@ -108,12 +108,9 @@
 
         <div class="flex gap-3 mb-6">
             <button onclick="prevSentence()" id="prev-btn" class="w-16 bg-white border-2 border-slate-100 text-slate-400 py-5 rounded-[1.8rem] font-black text-xl active:scale-95 transition-all">◀</button>
-            
-            <!-- 🎙️ 수동 종료 기능이 이식된 메인 마이크 제어 버튼 -->
             <button onclick="toggleListening()" id="mic-btn" class="flex-1 bg-slate-900 text-white py-5 rounded-[1.8rem] font-black text-lg shadow-2xl active:scale-95 transition-all flex items-center justify-center gap-2">
                 <span id="mic-icon">🎙️</span> <span id="mic-text">에코 매칭 도전!</span>
             </button>
-            
             <button onclick="nextSentence()" id="next-btn" class="w-16 bg-white border-2 border-slate-100 text-slate-400 py-5 rounded-[1.8rem] font-black text-xl active:scale-95 transition-all">▶</button>
         </div>
 
@@ -167,7 +164,7 @@
         let isMuteMode = false; 
         let recognition;
         let currentAudio = null;
-        let lastRecognizedSpeech = ""; // 💡 마지막으로 인식된 텍스트를 실시간으로 임시 보관할 변수
+        let audioCtx = null; // 💡 구글 오디오 전용 컨텍스트 추가 (락 해제용)
 
         const bannerMsgs = [
             { icon: "🔥", text: "하루 1분 투자! 실전 패턴 Pop!" },
@@ -235,6 +232,12 @@
                 return;
             }
 
+            // 💡 웹앱 진입 시 브라우저 오디오 시스템 최초 활성화 유도
+            try {
+                window.AudioContext = window.AudioContext || window.webkitAudioContext;
+                audioCtx = new AudioContext();
+            } catch (e) { console.log("AudioContext 생성 실패", e); }
+
             document.getElementById('auth-screen').classList.add('hidden');
             document.getElementById('study-screen').classList.remove('hidden');
             document.getElementById('target-session-display').innerText = selectedTargetEpisode.replace('_', ' / ');
@@ -262,6 +265,7 @@
             }
         }
 
+        // 💡 [버그 완전 예방] 마이크 오디오 인터럽트를 강제로 뚫어버리는 통합 재생 함수
         function playAudio(speed, isAutoPlay = false) {
             if (scriptData.length === 0) return;
             if (isAutoPlay && isMuteMode) return;
@@ -269,15 +273,39 @@
             const streamUrl = scriptData[currentIdx].audio;
             if (!streamUrl || streamUrl.trim() === "") return;
             
-            if (currentAudio) currentAudio.pause();
+            // 💡 핵심: 마이크로 인해 잠긴 브라우저 스피커 라인을 완전히 강제 리셋 후 깨우기
+            if (audioCtx && audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+
+            if (currentAudio) {
+                currentAudio.pause();
+                currentAudio.src = ""; // 기존 오디오 리소스 메모리 해제
+            }
             
             try {
                 currentAudio = new Audio(streamUrl.trim());
                 currentAudio.playbackRate = speed;
-                currentAudio.play();
+                
+                // 모바일 사파리/크롬 대응 강제 하이재킹 설정 추가
+                currentAudio.preload = "auto";
+                currentAudio.setAttribute('playsinline', '');
+                
+                var playPromise = currentAudio.play();
+                if (playPromise !== undefined) {
+                    playPromise.catch(error => {
+                        console.log("자동재생 인터럽트 방어 성공:", error);
+                    });
+                }
             } catch (error) {
                 console.error("Audio play error:", error);
             }
+        }
+
+        // 💡 사용자가 수동 버튼 터치 시 무조건 오디오 락을 확실히 깨우고 재생시키는 중계 함수
+        function userTriggerAudio(speed) {
+            if (audioCtx) audioCtx.resume();
+            playAudio(speed, false);
         }
 
         function buildReviewReport() {
@@ -375,82 +403,63 @@
             recognition = new SpeechObj();
             recognition.lang = 'en-US';
             
-            // 💡 실시간 중간 결과를 계속 받아내어 누적하기 위해 true로 설정 변경
-            recognition.interimResults = true; 
+            recognition.interimResults = false; 
+            recognition.continuous = false;
             recognition.maxAlternatives = 1;
 
             recognition.onresult = (event) => {
-                let interimTranscript = "";
-                for (let i = event.resultIndex; i < event.results.length; ++i) {
-                    if (event.results[i].isFinal) {
-                        lastRecognizedSpeech = event.results[i][0].transcript;
-                    } else {
-                        interimTranscript += event.results[i][0].transcript;
-                    }
-                }
+                const speechText = event.results[0][0].transcript;
+                const speechResult = speechText.toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"").trim();
+                const targetResult = scriptData[currentIdx].en.toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"").trim();
                 
-                // 실시간으로 뱉어지는 음성 텍스트를 연동 화면에 실시간으로 표시
-                const currentText = lastRecognizedSpeech || interimTranscript;
-                if(currentText) {
-                    document.getElementById('stt-output').innerText = `인식 중인 소리: "${currentText}"`;
+                document.getElementById('stt-output').innerText = `내가 뱉은 소리: "${speechText}"`;
+
+                if(speechResult === targetResult || targetResult.includes(speechResult)) {
+                    document.getElementById('stt-output').className = "text-xl match-success text-center";
+                    scriptData[currentIdx].isPassed = true;
+
+                    setTimeout(() => {
+                        if(currentIdx < scriptData.length - 1) {
+                            nextSentence();
+                        } else {
+                            showFinishUI(); 
+                        }
+                    }, 1200);
+                } else {
+                    document.getElementById('stt-output').className = "text-xl text-red-500 font-bold text-center";
                 }
             };
 
             recognition.onerror = (event) => {
                 console.error("STT Error:", event.error);
+                document.getElementById('stt-output').innerText = "소리를 제대로 듣지 못했습니다. 다시 시도해 주세요.";
             };
 
-            // 💡 구글이 자동 종료하든 사용자가 강제 종료하든, 마이크가 완전히 꺼지는 시점에 1회 최종 채점을 집행합니다.
+            // 💡 [오디오 버그 킬러] 마이크가 꺼지는 순간 강제로 브라우저 오디오 시스템 전체 락 해제
             recognition.onend = () => {
                 isListening = false;
-                
-                // 버튼 UI 원래 상태로 복구
                 document.getElementById('mic-btn').className = "flex-1 bg-slate-900 text-white py-5 rounded-[1.8rem] font-black text-lg shadow-2xl active:scale-95 transition-all flex items-center justify-center gap-2";
                 document.getElementById('mic-text').innerText = "에코 매칭 도전!";
-
-                // 말이 다 끝난 후 수집된 최종 텍스트 바탕으로 채점 처리 가동
-                if (lastRecognizedSpeech.trim() !== "") {
-                    processEvaluation(lastRecognizedSpeech);
+                
+                // 마이크 종료 즉시 웹 오디오 세션 리셋 요청 명령
+                if (audioCtx) {
+                    audioCtx.resume().then(() => {
+                        console.log("마이크 종료 후 오디오 파이프라인 완벽 해제 및 동기화 완료");
+                    });
                 }
             };
         }
 
-        // 💡 [신규] 수집 완료된 음성 텍스트와 정답을 비교하여 PASS/FAIL을 결정하는 단독 채점 엔진
-        function processEvaluation(speechText) {
-            const speechResult = speechText.toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"").trim();
-            const targetResult = scriptData[currentIdx].en.toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"").trim();
-            
-            document.getElementById('stt-output').innerText = `내가 뱉은 소리: "${speechText}"`;
-
-            if(speechResult === targetResult || targetResult.includes(speechResult)) {
-                document.getElementById('stt-output').className = "text-xl match-success text-center";
-                scriptData[currentIdx].isPassed = true;
-
-                setTimeout(() => {
-                    if(currentIdx < scriptData.length - 1) {
-                        nextSentence();
-                    } else {
-                        showFinishUI(); 
-                    }
-                }, 1200);
-            } else {
-                document.getElementById('stt-output').className = "text-xl text-red-500 font-bold text-center";
-            }
-        }
-
-        // 🎙️ [기능 수정] 버튼을 한 번 더 누르면 채점 프로세스를 즉시 강제 발동시키는 토글 제어 방식
         function toggleListening() {
+            if (audioCtx) audioCtx.resume(); // 터치하는 순간 오디오 활성화 상태 기록 보장
+
             if(isListening) {
-                // 💡 사용자가 말을 다 하고 버튼을 "다시 누른" 타이밍! -> 인식을 즉시 정지시킵니다.
-                // 정지되면 자동으로 'onend'가 실행되며 실시간 누적된 소리로 채점합니다.
                 recognition.stop();
             } else {
-                // 최초 도전 오픈 타이밍
                 isListening = true;
-                lastRecognizedSpeech = ""; // 음성 창고 초기화
                 
-                document.getElementById('mic-btn').className = "flex-1 bg-red-500 text-white py-5 rounded-[1.8rem] font-black text-lg shadow-2xl active:scale-95 transition-all flex items-center justify-center gap-2 animate-pulse";
-                document.getElementById('mic-text').innerText = "⏹️ 녹음 완료 (터치하여 채점)";
+                document.getElementById('mic-btn').className = "flex-1 bg-blue-600 text-white py-5 rounded-[1.8rem] font-black text-lg shadow-2xl active:scale-95 transition-all flex items-center justify-center gap-2 animate-pulse";
+                document.getElementById('mic-text').innerText = "🎙️ 음성 인식 중... (말씀하세요)";
                 document.getElementById('stt-output').innerText = "원어민의 호흡 그대로 소리 내어 던지세요!";
                 document.getElementById('stt-output').className = "text-xl text-slate-400 italic text-center";
                 
@@ -474,6 +483,7 @@
             document.getElementById('progress-text').innerText = `Sentence ${currentIdx + 1} / ${scriptData.length}`;
             document.getElementById('progress-bar').style.width = `${((currentIdx + 1) / scriptData.length) * 100}%`;
             
+            // 💡 문장 렌더링 시 브라우저 오디오 시스템 한 번 더 정렬 후 플레이
             setTimeout(() => {
                 playAudio(1.0, true);
             }, 300);
