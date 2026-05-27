@@ -417,10 +417,16 @@
             let speechResult = speechText.toLowerCase().trim();
             let targetResult = scriptData[currentIdx].en.toLowerCase().trim();
 
+            // ⏰ [업그레이드] 시간 기호(:) 예외 처리 로직 가동
+            // 대본에 '3:30' 형태로 기록되어 있을 때 공백을 주어 분리 처리 (3:30 -> 3 30)
+            targetResult = targetResult.replace(/:/g, ' ');
+            speechResult = speechResult.replace(/:/g, ' ');
+
             const numMap = {
                 "1": "one", "2": "two", "3": "three", "4": "four", "5": "five",
                 "6": "six", "7": "seven", "8": "eight", "9": "nine", "10": "ten",
-                "11": "eleven", "12": "twelve", "20": "twenty", "30": "thirty"
+                "11": "eleven", "12": "twelve", "20": "twenty", "30": "thirty",
+                "40": "forty", "50": "fifty"
             };
 
             for (let num in numMap) {
@@ -429,6 +435,7 @@
                 speechResult = speechResult.replace(regex, numMap[num]);
             }
 
+            // 문장 부호 기호 완벽 제거
             speechResult = speechResult.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?'"]/g,"").replace(/\s+/g, " ").trim();
             targetResult = targetResult.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?'"]/g,"").replace(/\s+/g, " ").trim();
 
